@@ -1,45 +1,102 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<voicemail >
-    <!-- =======================  CF-Group V1.00  ======== kwa inno srl 05/2010 ========== -->
+
+<voicemail xmlns="http://www.innovaphone.com/xsd/voicemail6.xsd" _ver="--VER--">
+
     <function define="Main">
-	<event type="timer" name="vbguard">
-		<store-cookie name="Overflow.txt" out="$target"/>
-		<pbx-xfer e164="$target" out-cause="$cause" />
-		<pbx-disc /> 
-	</event>
-	<store-cookie name="Timeout.txt" out="$timeout"/>
-	<timer name="vbguard" sec="$timeout" /> 
-	<call name="FirstIn" />
-	<call name="HandleBusy" />	
-	<pbx-disc />
+
+        
+
+        <!--
+        <event type="call-end" name="callend">
+            <dbg string="### call end event handling, cause code: " string2="$cause"/>
+            <pbx-disc /> 
+            <switch var="$cause">
+                <case equal="17">
+                    <store-cookie name="overflow.txt" out="$overflow_target"/>
+                    <pbx-xfer e164="$overflow_target" out-cause="$test" />
+                </case>
+            </switch>
+        </event>
+        -->
+        
+        
+        <!-- workaround for the case all agents are busy
+        a short alerting state must be set up, in order the calling phone do not disconnect, while waiting for busy agents
+        script have to forward the call to a not busy endpoint (must be not a WQ, but a real phone) for short time
+        -->
+
+        <pbx-fwd e164="204" out-cause="$cause" sec="1"/>
+        
+        
+        <event type="timer" name="overflow_timer">
+            
+            <store-cookie root="" name="overflow.txt" out="$overflow_target"/>
+            
+            <dbg string="### overflow timeout occured, transfer the call to : " string2="$overflow_target"/>
+            
+            <pbx-xfer e164="$overflow_target" out-cause="$overflow_cause" />
+
+            <pbx-disc />
+
+        </event>
+        
+        <store-cookie root="" name="overflow_timeout.txt" out="$overflow_timeout"/>
+        <timer name="overflow_timer" sec="$overflow_timeout" />
+        
+        
+        <store-cookie root="" name="timeout.txt" out="$timeout"/>
+        
+        <assign out="$end" value="false" />
+
+        <while notcond="$end">
+
+            <store-cookie root="" name="next.txt" out="$agent"/>
+            <lib-strcat string="$agent" string2=".txt" out-string="$next_file" />
+
+            <store-cookie root="" name="$next_file" out="$next_agent"/>
+            <store-cookie root="" name="next.txt" value="$next_agent"/>
+
+            <dbg string="### try to deliver the call to: " string2="$agent"/>
+            <pbx-fwd e164="$agent" out-cause="$cause" sec="$timeout"/>
+            <dbg string="### call delivery result: " string2="$cause"/>
+                
+            <switch var="$cause">
+
+                <case equal="17">
+                    <dbg string="### case busy, cause code: " string2="$cause"/>
+                    <assign out="$end" value="false" />
+
+
+                    <wait sec="3"/>
+
+                </case>
+
+                <case equal="128">
+                    <dbg string="### case no resp, cause code: " string2="$cause"/>
+                    <assign out="$end" value="false" />
+
+                </case>
+
+                <default>
+                    <dbg string="### default case, cause code: " string2="$cause"/>
+                    <assign out="$end" value="true" />
+                    
+                </default>
+            </switch>
+            <dbg string="### loop end: " string2="$end"/>
+
+        </while>
+
+        <dbg string="### end "/>
+		<pbx-disc />
+        
     </function>
-    <function define="FirstIn">
-	<store-cookie name="next.txt" out="$target"/>
-	<call name="Dispatch" />	
-    </function>
-    <function define="Dispatch">
-	<lib-strcat string="$target" string2=".txt" out-string="$Next2" /> 
-	<store-cookie name="$Next2" out="$target2"/>
-	<store-cookie name="next.txt" value="$target2"/>
-	<pbx-fwd e164="$target" out-cause="$cause" />
-    </function>
-    <function define="HandleBusy" >
-	<assign out="$ok" value="False" />	
-	<switch var="$cause">
-	<case not-equal="17">
-		<assign out="$ok" value="True" />
-	</case>
-	</switch>
-	<while notcond="$ok">
-		<call name="FirstIn" />
-		<wait sec="3"/>
-		<switch var="$cause">
-		<case not-equal="17">
-			<assign out="$ok" value="True" />
-		</case>
-		</switch>
-	</while>
-    </function>
+
+
 </voicemail>
 
+
+
 <!-- Simple Round Robin ACD with Voicemail XML Script wiki-src/xml/RRobinACD 1,0,0,0 (C) innovaphone AG 2010-2010 -->
+
+<!-- Simple Round Robin ACD with Voicemail XML Script wiki-src/xml/RRobinACD 1,0,1,0 (C) innovaphone AG 2010-2014 -->
