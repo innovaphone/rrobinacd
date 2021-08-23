@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<voicemail >
+    <!-- =======================  CF-Group V1.00  ======== kwa inno srl 05/2010 ========== -->
+    <function define="Main">
+	<event type="timer" name="vbguard">
+		<store-cookie name="Overflow.txt" out="$target"/>
+		<pbx-xfer e164="$target" out-cause="$cause" />
+		<pbx-disc /> 
+	</event>
+	<store-cookie name="Timeout.txt" out="$timeout"/>
+	<timer name="vbguard" sec="$timeout" /> 
+	<call name="FirstIn" />
+	<call name="HandleBusy" />	
+	<pbx-disc />
+    </function>
+    <function define="FirstIn">
+	<store-cookie name="next.txt" out="$target"/>
+	<call name="Dispatch" />	
+    </function>
+    <function define="Dispatch">
+	<lib-strcat string="$target" string2=".txt" out-string="$Next2" /> 
+	<store-cookie name="$Next2" out="$target2"/>
+	<store-cookie name="next.txt" value="$target2"/>
+	<pbx-fwd e164="$target" out-cause="$cause" />
+    </function>
+    <function define="HandleBusy" >
+	<assign out="$ok" value="False" />	
+	<switch var="$cause">
+	<case not-equal="17">
+		<assign out="$ok" value="True" />
+	</case>
+	</switch>
+	<while notcond="$ok">
+		<call name="FirstIn" />
+		<wait sec="3"/>
+		<switch var="$cause">
+		<case not-equal="17">
+			<assign out="$ok" value="True" />
+		</case>
+		</switch>
+	</while>
+    </function>
+</voicemail>
+
+<!-- Simple Round Robin ACD with Voicemail XML Script wiki-src/xml/RRobinACD 1,0,0,0 (C) innovaphone AG 2010-2010 -->
