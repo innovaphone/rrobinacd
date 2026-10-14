@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 
-<voicemail xmlns="http://www.innovaphone.com/xsd/voicemail6.xsd" _ver="--VER--">
+<voicemail xmlns="https://www.innovaphone.com/xsd/voicemail6.xsd" _ver="--VER--">
 
     <function define="Main">
 
